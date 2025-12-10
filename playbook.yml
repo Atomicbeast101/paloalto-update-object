@@ -1,0 +1,121 @@
+---
+# https://github.com/wpacket/pan-ansible/blob/master/pan_config_pull.yml
+- name: Backup Config from Palo Alto Firewall
+  hosts: localhost
+  gather_facts: no
+  vars:
+    # Palo Alto Firewall
+    firewall_host: "{{ lookup('ansible.builtin.env', 'FIREWALL_HOST') }}"
+    firewall_username: "{{ lookup('ansible.builtin.env', 'FIREWALL_USERNAME') }}"
+    firewall_password: "{{ lookup('ansible.builtin.env', 'FIREWALL_PASSWORD') }}"
+    firewall_object_name: "{{ lookup('ansible.builtin.env', 'FIREWALL_OBJECT_NAME') }}"
+    firewall_object_location: "{{ lookup('ansible.builtin.env', 'FIREWALL_OBJECT_LOCATION', default='vsys') }}"
+    firewall_object_vsys: "{{ lookup('ansible.builtin.env', 'FIREWALL_OBJECT_VSYS', default='vsys1') }}"
+    firewall_restapi_version: 11.1
+    # Pushover
+    pushover_user: "{{ lookup('ansible.builtin.env', 'PUSHOVER_USER_KEY') }}"
+    pushover_token: "{{ lookup('ansible.builtin.env', 'PUSHOVER_APP_TOKEN') }}"
+  tasks:
+    - name: Update Object
+      block:
+        - name: Query api.ipify.org for WAN IP Address
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: https://api.ipify.org?format=json
+            return_content: true
+          register: ipify
+
+        - name: Generate API Key
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: "https://{{ firewall_host }}/api/?type=keygen&user={{ firewall_username }}&password={{ firewall_password }}"
+            method: GET
+            validate_certs: no
+            return_content: yes
+          register: api_key_data
+
+        - name: Extract API Key from XML Output
+          delegate_to: localhost
+          ansible.builtin.xml:
+            xmlstring: "{{ api_key_data.content }}"
+            content: "text"
+            xpath: "/response/result/key"
+          register: api_keys
+
+        # https://firewall.example.com/restapi-doc/
+        - name: Get all Address Objects
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: "https://{{ firewall_host }}/restapi/v{{ firewall_restapi_version }}/Objects/Addresses?location={{ firewall_object_location }}&vsys={{ firewall_object_vsys }}"
+            method: GET
+            validate_certs: no
+            headers:
+              X-PAN-KEY: "{{ api_keys.matches[0].key }}"
+              Content-Type: application/json
+          register: raw_address_objects
+        
+        - name: Extract Address Object Names
+          ansible.builtin.set_fact:
+            address_object_names: "{{ raw_address_objects.json.result.entry | map(attribute='@name') | list }}"
+
+        - name: Check if Object Exists
+          ansible.builtin.fail:
+            msg: "'{{ firewall_object_name }}' object does not exist in Palo Alto! Available options: {{ address_object_names }}"
+          when: firewall_object_name not in address_object_names
+
+        - name: Get Address Object's Current IP Address
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: "https://{{ firewall_host }}/restapi/v{{ firewall_restapi_version }}/Objects/Addresses?location={{ firewall_object_location }}&vsys={{ firewall_object_vsys }}&name={{ firewall_object_name | urlencode }}"
+            method: GET
+            validate_certs: no
+            headers:
+              X-PAN-KEY: "{{ api_keys.matches[0].key }}"
+              Content-Type: application/json
+          register: raw_address_object_ip_address
+
+        - name: Update Address Object
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: "https://{{ firewall_host }}/restapi/v{{ firewall_restapi_version }}/Objects/Addresses?location={{ firewall_object_location }}&vsys={{ firewall_object_vsys }}&name={{ firewall_object_name | urlencode }}"
+            method: PUT
+            validate_certs: no
+            headers:
+              X-PAN-KEY: "{{ api_keys.matches[0].key }}"
+              Content-Type: application/json
+            body_format: json
+            body:
+              entry:
+                "@name": "{{ firewall_object_name }}"
+                ip-netmask: "{{ ipify.json.ip }}"
+            status_code:
+              - 200
+              - 201
+          when: raw_address_object_ip_address.json.result.entry[0]['ip-netmask'] != ipify.json.ip
+          changed_when: raw_address_object_ip_address.json.result.entry[0]['ip-netmask'] != ipify.json.ip
+          register: update_output
+
+        - name: Commit Changes
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: "https://{{ firewall_host }}/api/?type=commit&cmd=<commit><partial><policy-and-objects></policy-and-objects></partial></commit>&key={{ api_keys.matches[0].key }}"
+            method: POST
+            validate_certs: no
+            return_content: yes
+          when: raw_address_object_ip_address.json.result.entry[0]['ip-netmask'] != ipify.json.ip
+          register: commit_output
+          changed_when: (commit_output.content | ansible.utils.from_xml)['response']['@status'] == 'success'
+
+      rescue:
+        - name: Notify Admin of Failed Backup
+          delegate_to: localhost
+          ansible.builtin.uri:
+            url: https://api.pushover.net/1/messages.json
+            method: POST
+            headers: 
+              Content-Type: application/json
+            body_format: json
+            body:
+              user: "{{ pushover_user }}"
+              token: "{{ pushover_token }}"
+              message: "❌ Unable to perform config backup for {{ firewall_host }}!"

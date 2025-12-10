@@ -1,0 +1,39 @@
+name: Build/Push App for Production
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release
+    steps:
+      - name: Build&Push Image for Local Registry
+        uses: https://${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/gitea-workflows-builder@main
+        with:
+          registry_url: ${{ vars.LOCAL_REGISTRY_URL }}
+          registry_username: ${{ vars.LOCAL_REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.LOCAL_REGISTRY_PASSWORD }}
+
+      - name: Build&Push Image for GitHub Registry
+        uses: https://${{ vars.GHCR_REGISTRY_URL }}/${{ vars.GHCR_REGISTRY_USERNAME }}/gitea-workflows-builder@main
+        with:
+          registry_url: ${{ vars.GHCR_REGISTRY_URL }}
+          registry_username: ${{ vars.GHCR_REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.GHCR_REGISTRY_PASSWORD }}
+
+  report:
+    name: Report
+    if: always()
+    continue-on-error: true
+    needs:
+      - release
+    env:
+      SUCCESS: ${{ needs.release.result == 'success' }}
+    steps:
+      - name: Notify User
+        uses: https://${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/gitea-workflows-notification@main
+        with:
+          success: ${{ env.SUCCESS }}
+          pushover_user: ${{ secrets.PUSHOVER_USER }}
+          pushover_token: ${{ secrets.PUSHOVER_TOKEN }}

@@ -1,0 +1,71 @@
+name: Build/Push App for Development
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  release:
+    name: Release
+    steps:
+      - name: Build&Push Image
+        uses: https://${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/gitea-workflows-builder@main
+        with:
+          registry_url: ${{ vars.LOCAL_REGISTRY_URL }}
+          registry_username: ${{ vars.LOCAL_REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.LOCAL_REGISTRY_PASSWORD }}
+          development: true
+
+  test:
+    name: Test
+    needs: 
+      - release
+    runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-latest
+    steps:
+      - name: Get Meta
+        id: meta
+        run: |
+          echo REPO_NAME=$(echo "${GITHUB_REPOSITORY##*/}") >> $GITHUB_OUTPUT
+          echo DATE_RELEASE=$(echo "`date +'%Y.%m.%d'`") >> $GITHUB_OUTPUT
+
+      - name: Run Container & Capture Logs
+        run: |
+          CONTAINER_NAME="${{ steps.meta.outputs.REPO_NAME }}-auto-test"
+          if docker ps -a --filter "name=$CONTAINER_NAME" --format "{{.ID}}" | grep -q .; then
+            echo "Stopping and removing existing container: $CONTAINER_NAME..."
+            docker stop $CONTAINER_NAME
+            docker rm -f $CONTAINER_NAME
+          fi
+          docker pull ${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/${{ steps.meta.outputs.REPO_NAME }}:${{ steps.meta.outputs.DATE_RELEASE }}-dev
+          docker run --name $CONTAINER_NAME \
+            -e FIREWALL_HOST=${{ vars.FIREWALL_HOST }} \
+            -e FIREWALL_USERNAME=${{ vars.FIREWALL_USERNAME }} \
+            -e FIREWALL_PASSWORD=${{ secrets.FIREWALL_PASSWORD }} \
+            -e FIREWALL_OBJECT="WAN IP" \
+            -e PUSHOVER_USER_KEY=${{ secrets.PUSHOVER_USER }} \
+            -e PUSHOVER_APP_TOKEN=${{ secrets.PUSHOVER_TOKEN }} \
+            ${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/${{ steps.meta.outputs.REPO_NAME }}:${{ steps.meta.outputs.DATE_RELEASE }}-dev \
+            bash -c "/app/setup.sh && /app/run.sh"
+          docker wait $CONTAINER_NAME
+          docker rm $CONTAINER_NAME
+
+  report:
+    name: Report
+    if: always()
+    continue-on-error: true
+    needs:
+      - release
+      - test
+    env:
+      SUCCESS: ${{ needs.release.result == 'success' && needs.test.result == 'success' }}
+    steps:
+      - name: Notify User
+        uses: https://${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/gitea-workflows-notification@main
+        with:
+          success: ${{ env.SUCCESS }}
+          development: true
+          tested: true
+          pushover_user: ${{ secrets.PUSHOVER_USER }}
+          pushover_token: ${{ secrets.PUSHOVER_TOKEN }}
