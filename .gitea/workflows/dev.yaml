@@ -43,7 +43,7 @@ jobs:
             -e FIREWALL_HOST=${{ vars.FIREWALL_HOST }} \
             -e FIREWALL_USERNAME=${{ vars.FIREWALL_USERNAME }} \
             -e FIREWALL_PASSWORD=${{ secrets.FIREWALL_PASSWORD }} \
-            -e FIREWALL_OBJECT="WAN IP" \
+            -e FIREWALL_OBJECT_NAME="WAN IP" \
             -e PUSHOVER_USER_KEY=${{ secrets.PUSHOVER_USER }} \
             -e PUSHOVER_APP_TOKEN=${{ secrets.PUSHOVER_TOKEN }} \
             ${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/${{ steps.meta.outputs.REPO_NAME }}:${{ steps.meta.outputs.DATE_RELEASE }}-dev \
