@@ -15,11 +15,11 @@ echo "Setting up environment..."
 
 # Configure cron schedule
 echo "Scheduling backup job..."
-echo "$CRON_SCHEDULE cd /app && /app/run.sh >> /var/log/cron.log 2>&1" > /etc/crontabs/root
+echo "$CRON_SCHEDULE /bin/bash -c \". /etc/environment; cd /app; /app/run.sh >> /var/log/cron.log 2>&1\"" > /etc/crontabs/root
 
 # Load all env variables to /etc/environment for cron to access
 printenv > /etc/environment
 
 # Run cron in foreground
 echo "Started cron job!"
-exec crond -f && tail -f /var/log/cron.log
+exec crond -f
