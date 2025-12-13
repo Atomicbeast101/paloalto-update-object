@@ -15,6 +15,7 @@ echo "✅ All required environment variables are set."
 # Configure cron schedule
 echo "Scheduling backup job..."
 echo "$CRON_SCHEDULE /app/run.sh" > /app/crontab
+echo "Backup job scheduled!"
 
 # Run from CMD or "docker run"/"kubectl run"
 exec "$@"
