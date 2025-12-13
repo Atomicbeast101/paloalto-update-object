@@ -16,3 +16,6 @@ echo "Setting up environment..."
 # Configure cron schedule
 echo "Scheduling backup job..."
 echo "$CRON_SCHEDULE /app/run.sh" > /app/crontab
+
+# Run from CMD or "docker run"/"kubectl run"
+exec "$@"
