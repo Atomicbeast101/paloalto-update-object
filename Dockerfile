@@ -16,6 +16,6 @@ COPY requirements.txt .
 COPY requirements.yml .
 COPY playbook.yml .
 COPY *.sh .
-RUN chmod +x /app/*.sh
+RUN chmod +x /app/*.sh && chown app:app /app -R
 USER app
 CMD ["./docker-entrypoint.sh"]
