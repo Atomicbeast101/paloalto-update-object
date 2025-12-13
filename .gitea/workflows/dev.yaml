@@ -47,7 +47,7 @@ jobs:
             -e PUSHOVER_USER_KEY=${{ secrets.PUSHOVER_USER }} \
             -e PUSHOVER_APP_TOKEN=${{ secrets.PUSHOVER_TOKEN }} \
             ${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/${{ steps.meta.outputs.REPO_NAME }}:${{ steps.meta.outputs.DATE_RELEASE }}-dev \
-            bash -c "/app/setup.sh && /app/run.sh"
+            bash -c "/app/run.sh"
           docker wait $CONTAINER_NAME
           docker rm $CONTAINER_NAME
 

@@ -15,8 +15,4 @@ echo "Setting up environment..."
 
 # Configure cron schedule
 echo "Scheduling backup job..."
-echo "$CRON_SCHEDULE /bin/bash -c \"cd /app; /app/run.sh >> /var/log/cron.log 2>&1\"" > /etc/crontab
-
-# Run cron in foreground
-echo "Started cron job!"
-exec supercronic /etc/crontab -log-level=info
+echo "$CRON_SCHEDULE /bin/bash -c \"cd /app; /app/run.sh\"" > /etc/crontab

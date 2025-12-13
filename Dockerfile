@@ -18,4 +18,5 @@ COPY playbook.yml .
 COPY *.sh .
 RUN chmod +x /app/*.sh && chown appuser:appgroup /app -R
 USER appuser
-CMD ["./docker-entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["supercronic", "/etc/cronjob"]
