@@ -10,7 +10,6 @@ done
 echo "✅ All required environment variables are set."
 
 # Setup .env environment
-echo "Setting up environment..."
 ./setup.sh
 
 # Configure cron schedule
