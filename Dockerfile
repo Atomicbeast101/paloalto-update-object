@@ -19,4 +19,4 @@ COPY *.sh .
 RUN chmod +x /app/*.sh && chown appuser:appgroup /app -R
 USER appuser
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["supercronic", "/app/cronjob"]
+CMD ["supercronic", "-json", "/app/cronjob"]
