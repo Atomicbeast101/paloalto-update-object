@@ -15,4 +15,4 @@ echo "Setting up environment..."
 
 # Configure cron schedule
 echo "Scheduling backup job..."
-echo "$CRON_SCHEDULE /bin/bash -c \"cd /app; /app/run.sh\"" > /app/crontab
+echo "$CRON_SCHEDULE /app/run.sh" > /app/crontab
