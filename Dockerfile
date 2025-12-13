@@ -11,11 +11,11 @@ ENV CRON_SCHEDULE="0 0 * * *"
 ENV SFTP_PORT=22
 
 # Start App
-USER app
 WORKDIR /app
 COPY requirements.txt .
 COPY requirements.yml .
 COPY playbook.yml .
 COPY *.sh .
 RUN chmod +x /app/*.sh
+USER app
 CMD ["./docker-entrypoint.sh"]
