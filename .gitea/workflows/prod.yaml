@@ -16,7 +16,7 @@ jobs:
           registry_password: ${{ secrets.LOCAL_REGISTRY_PASSWORD }}
 
       - name: Build&Push Image for GitHub Registry
-        uses: https://${{ vars.GHCR_REGISTRY_URL }}/${{ vars.GHCR_REGISTRY_USERNAME }}/gitea-workflows-builder@main
+        uses: https://${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/gitea-workflows-builder@main
         with:
           registry_url: ${{ vars.GHCR_REGISTRY_URL }}
           registry_username: ${{ vars.GHCR_REGISTRY_USERNAME }}
