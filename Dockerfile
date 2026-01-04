@@ -1,4 +1,10 @@
+ARG URL=https://github.com
+ARG OWNER=Atomicbeast101
+ARG REPO_NAME=unknown
+ARG VERSION=0000.00.00
 FROM alpine:3.22
+LABEL org.opencontainers.image.source=${URL}/${OWNER}/${REPO_NAME}
+LABEL org.opencontainers.image.version=${VERSION}
 
 # Dependencies
 COPY packages.txt /tmp/packages.txt
