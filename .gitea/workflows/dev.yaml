@@ -9,7 +9,7 @@ jobs:
     name: Release
     steps:
       - name: Build&Push Image
-        uses: https://${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/gitea-workflows-builder@main
+        uses: https://${{ vars.LOCAL_REGISTRY_URL }}/${{ vars.LOCAL_REGISTRY_USERNAME }}/gitea-workflows-builder@dev
         with:
           registry_url: ${{ vars.LOCAL_REGISTRY_URL }}
           registry_username: ${{ vars.LOCAL_REGISTRY_USERNAME }}
